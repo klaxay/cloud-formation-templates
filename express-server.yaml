@@ -26,7 +26,8 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable SSH access and HTTP
-      VpcId: !Ref VPC
+      VpcId: 
+        Ref: VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
@@ -55,20 +56,24 @@ Resources:
     Properties:
       Path: "/"
       Roles:
-        - !Ref ExpressServerRole
+        - Ref: ExpressServerRole
 
   ExpressServer:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: !Ref InstanceType
+      InstanceType: 
+        Ref: InstanceType
       ImageId: ami-0aa7d40eeae50c9a9  # Amazon Linux 2 AMI in us-east-1
-      KeyName: !Ref KeyName
-      SubnetId: !Ref Subnet
+      KeyName: 
+        Ref: KeyName
+      SubnetId: 
+        Ref: Subnet
       SecurityGroupIds:
-        - !Ref ExpressServerSecurityGroup
-      IamInstanceProfile: !Ref ExpressServerInstanceProfile
+        - Ref: ExpressServerSecurityGroup
+      IamInstanceProfile: 
+        Ref: ExpressServerInstanceProfile
       UserData:
-        Fn::Base64: !Sub |
+        Fn::Base64: |
           #!/bin/bash -xe
           # Update system packages
           yum update -y
@@ -97,14 +102,13 @@ Resources:
           cat > app.js << 'EOF'
           const express = require('express');
           const app = express();
-          const port = 3000;
           
           app.get('/', (req, res) => {
             res.send('Hello from AWS EC2!');
           });
           
-          app.listen(port, () => {
-            console.log(`Express server listening at http://localhost:${port}`);
+          app.listen(3000, () => {
+            console.log('Express server listening at http://localhost:3000');
           });
           EOF
           
@@ -135,10 +139,21 @@ Resources:
 Outputs:
   PublicIP:
     Description: Public IP address of the EC2 instance
-    Value: !GetAtt ExpressServer.PublicIp
+    Value: 
+      Fn::GetAtt: 
+        - ExpressServer
+        - PublicIp
   PublicDNS:
     Description: Public DNS name of the EC2 instance
-    Value: !GetAtt ExpressServer.PublicDnsName
+    Value:
+      Fn::GetAtt:
+        - ExpressServer
+        - PublicDnsName
   ExpressServerURL:
     Description: URL for the Express server
-    Value: !Sub http://${ExpressServer.PublicDnsName}:3000
+    Value: 
+      Fn::Join:
+        - ""
+        - ["http://", 
+           {"Fn::GetAtt": ["ExpressServer", "PublicDnsName"]}, 
+           ":3000"]
